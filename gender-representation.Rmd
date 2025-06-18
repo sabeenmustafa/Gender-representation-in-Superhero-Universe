@@ -1,0 +1,457 @@
+---
+title: "**Gender representation in Superhero Universe**"
+author: "Group 6 - Aditi Chadha, Sabeen Mustafa, Krishna Barfiwala"
+date: "2023-02-10"
+output: 
+  html_document:
+    df_print: paged
+  pdf_document: default
+header-includes:
+    #- \usepackage{dvipsnames}
+    - \usepackage{titling}
+    - \pretitle{\begin{center}
+      \includegraphics[width=8in,height=2in]{superheroes_image.jpg}\LARGE\\}
+    - \posttitle{\end{center}}
+    - \usepackage{sectsty}
+    - \allsectionsfont{\color{blue!50!black}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r warnings ignore, include=FALSE}
+options(dplyr.summarise.inform = FALSE, warning = FALSE, message = FALSE)
+
+```
+
+# 1. Problem Statement
+Superheroes! Did you too just think about all the male superheroes? Typically, when one imagines superheroes, the image that comes to mind is that of a male character. Despite 13 years of the Marvel Cinematic Universe (MCU), only two out of the 25 films produced have featured a female actress as the main protagonist. Despite the long history of male-dominated superhero universes, the recent surge in popularity of female superheroes has challenged traditional gender roles and expectations in the genre. The rise of female superheroes in popular culture is an important and timely issue that deserves similar importance. In this project, we aim to explore the representation of gender in the superhero universe and examine the difference between the male and female superheroes on the basis of various factors. The Superhero Characters and Powers dataset holds details about numerous superheroes originating from diverse storylines and fictional universes and it also describes various physical, mental parameter and supernatural abilities that are considered while creating a character. Our aim is to analyse how the male and female superheroes differ through some features like:
+
+*Examining the differences in gender balance amongst superheroes
+*Comparing superhero capabilities in terms of physical, mental and supernatural abilities
+*Investigating the world of women superheroes
+
+The ultimate goal of this report is to provide a comprehensive analysis of the representation of gender in the superhero universe and to contribute to the ongoing conversation about the role of women in popular culture.
+
+
+## 1.1 About the Dataset: 
+The dataset provides information about the origin of the characters that include the creators, universe, collections, their alignment (good / bad / neutral) etc. It also gives information about the physical abilities of the character including the power, strength, speed, durability in numeric form. Apart from this, some super powers of the characters are also available, that include super powers, omnipresent, omnipotent, and so on. 
+
+Some other variables provided are: 
+*Level : Power level or class of the superheroes 
+*Combat : Superheroes proficiency in action rated from (0-100)
+*Gender : The superheroes gender (Male/Female)
+*Member : Are they a member of any groups like Avengers, etc? 
+*Species : What kind of race (Human, Robot, Alien, etc) do they belong to? 
+*Tier: Superhero’s power or class 
+*Relatives : Any known past, current, future relatives of the superheroes
+*Place_of_birth : where were the superheroes born ? 
+*Occupation : What is the superhero’s main job 
+
+The dataset can be found here : https://www.kaggle.com/datasets/baraazaid/superherodb
+
+## 2. Section 1: - Examining the differences in gender balance amongst superheroes
+
+```{r working_directory, include=FALSE}
+#setwd("G:/My Drive/1. My Masters course/2. Computation and Visualization/Assignments/Homework 4")
+#getwd()
+
+```
+
+```{r Libraries, include= FALSE}
+library(dplyr)
+library(stringr)
+library(corrplot)
+library(ggplot2)
+library(reshape2)
+library(scales)
+library(tidyverse)
+library(tidyr)
+library(gridExtra)
+library(magrittr)
+#install.packages("plotrix")
+#install.packages("fmsb")
+library(plotrix)
+library(fmsb)
+
+```
+
+some description about this section and what we aim to achieve in this section
+
+```{r Section 1 viz 1, warning= FALSE ,  echo = FALSE}
+
+sup_df <- read.csv('Superheroes.csv')
+
+#dim(sup_df)
+sup_df<- distinct(sup_df)
+#dim(sup_df[duplicated(sup_df),])[1]
+
+df_pie <- subset(sup_df, Gender == "Male" | Gender == "Female", select = c("Gender"))
+
+males <- sum(df_pie$gender == "Male")
+females <- sum(df_pie$gender == "Female")
+counts <- table(df_pie$Gender)
+
+# Create a new column "count" in the data frame and assign the count values
+df_pie$count <- counts[df_pie$Gender]
+df_unique <- df_pie[!duplicated(df_pie), ]
+df_unique <- df_unique %>% 
+             mutate(Percentage = round((count/sum(count))*100.00))
+
+# # Create the 3D pie chart
+# pie3D(df_unique$count, labels = paste(df_unique$Percentage, "%"), main = "Gender Distribution",
+#       col = c("#ADD8E6", "#FFB6C1"), cex =0.5, 
+#       #cex = 0.8, labelcex=1.5
+#       border = "black", explode = 0.04, 
+#       mgp = c(4,3,3)) 
+# legend("topright", c("Male", "Female"),fill = c("#FF7673", "#6663A3"), bty = "n")
+
+pos<- pie3D(df_unique$Percentage, 
+      radius = 0.75,
+      height = 0.1,
+      theta = 0.7,
+      border = "black",
+      col = c("#FF7673", "#6663A3"),
+      shade = 0.5,
+      labels = paste(df_unique$Percentage, "%"),
+      labelcol = "black",
+      labelcex = 0.75,
+      explode = 0.05, mgp = c(4,3,3)
+      #,main = "Percentage of Male and Female Superheroes"
+      ) 
+plot.new()
+legend(0.5, 0.9, df_unique$Gender, cex = 0.7, fill = c("#FF7673", "#6663A3"), bty="n")
+
+# pos
+# pos[1]<-2.5
+# pos[2]<-5.6
+
+```
+
+#Well, not surprising to know there are more males than females. Around 27% are females and 73% are males. Hence, the numbers indicate that there is a significant imbalance in the creation of male and female superheroes. Till date a total of 13717 male characters have been created and a total of 4973 female characters have been created. We will see later in the report, if the quantity of males is really impactful or not. 
+
+
+```{r Section 1 viz 2, warning= FALSE , echo = FALSE}
+#sup_df <- read.csv('Superheroes.csv')
+sup_df$Alignment <- na_if(sup_df$Alignment, "-")
+sup_df$Alignment <- na_if(sup_df$Alignment, "")
+sup_df$Alignment <- na_if(sup_df$Alignment, "None")
+
+sup_df<- sup_df %>% filter(!row_number() %in% grep("Alignment", sup_df$Alignment, ignore.case=FALSE))
+
+sup_df$Gender <- na_if(sup_df$Gender, "-")
+
+sup_df$Gender <- na_if(sup_df$Gender, "Other")
+sup_df$Gender <- na_if(sup_df$Gender, "None")
+
+align_grp <- sup_df %>% group_by(Alignment, Gender) %>%
+            dplyr:: summarise(Count_heroes = n()) 
+
+align_na<- na.omit(align_grp)   
+
+align_na <- align_na%>% 
+            group_by(Alignment) %>%
+            mutate(Percent_contribution = (Count_heroes/sum(Count_heroes)))
+
+ggplot(align_na, aes(x = Alignment, y = Percent_contribution, fill = Gender)) +
+  geom_col(position = "fill", colour = "black") + 
+  scale_fill_manual(values = c("#FF7673", "#6663A3")) +
+  scale_y_continuous(labels = scales::percent) + 
+  ylab("Percentage") +
+  geom_text(aes(label= paste(round(Percent_contribution*100),"%")),
+             position=position_stack(vjust=0.5), size = 3) + 
+              theme(panel.grid.major = element_blank(), 
+                    panel.grid.minor = element_blank(),
+                    panel.background = element_blank(), 
+                    axis.line = element_line(colour = "black"))
+
+
+#ffb347
+#916860
+#249EA0
+```
+
+#The distribution of Males and Females with their Moral alignment indicates that there are approx 75% of males in each Alignment category that is Bad, Good and Neutral. 
+
+
+```{r Section 1 viz 3, warning= FALSE , echo = FALSE}
+
+creator_df <- subset(sup_df, (Gender == "Male" | Gender == "Female"), 
+                     select = c("Gender", "Creator"))
+              
+creator_df$Creator <- na_if(creator_df$Creator, "None")
+
+creator_df<- na.omit(creator_df)
+
+creator_df$Creator <- str_trim(creator_df$Creator, side='both')
+
+create_wider <- creator_df %>%
+              count(Creator, Gender) %>%
+              pivot_wider(names_from = Gender,
+                          values_from = n, values_fill = list(n = 0)) 
+
+create_wider$Total_heros <- create_wider$Male + create_wider$Female 
+
+create_wider <- create_wider %>% arrange(desc(Male), desc(Female))
+
+creator_top <- head(create_wider,10)
+
+creator_top$Female_perc <- (creator_top$Female/ creator_top$Total_heros) 
+creator_top$Male_perc <- (creator_top$Male/ creator_top$Total_heros)
+
+##########
+
+creator_top = creator_top[, -which(names(creator_top) %in% c("Female","Male"))]
+
+colnames(creator_top)[colnames(creator_top) == "Female_perc"] <- "Female"
+colnames(creator_top)[colnames(creator_top) == "Male_perc"] <- "Male"
+
+###############
+
+creator_long <-  creator_top %>% 
+                 pivot_longer(cols = c(Female, Male), names_to = "Gender", 
+                              values_to = "Percentage")
+
+
+ggplot(creator_long,aes(x=Creator, y = ifelse(Gender == "Male", round(Percentage*100), -round(Percentage*100)), fill=Gender)) +
+  geom_bar(stat="identity", position="identity", color = "black")+
+  scale_y_continuous(limits = c(-45, max(round(creator_long$Percentage*100.00)))) +
+  geom_text(aes(label= paste0(round(Percentage*100), '%')), 
+            position = position_stack(vjust = 0.5)) +
+  scale_fill_manual(values = c("#FF7673", "#6663A3")) +
+  theme()+
+  coord_flip() +
+  xlab("") +
+  theme_bw() +
+  theme(
+        axis.text=element_text(size=8, face="bold"), 
+        panel.grid.major = element_blank(), 
+        axis.text.x=element_blank(), 
+        axis.title.x=element_blank(), 
+        panel.borde=element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        #axis.line = element_blank()) + 
+        axis.line = element_blank()) 
+        #+scale_fill_discrete(labels=c('Female', 'Male'))
+
+
+
+```
+
+
+#Yet again in the above plot, the distribution of males and females is unequally distributed with male superheroes dominating the females, in number. The rows represent the different top entities that created the superheroes. Riot Games created the most number of female superheroes, approx 43%.  Shueisha created 20% of females and 80% males. IDW Publishing and Cartoon Network created approx 17% of females and 83% males. 
+
+## 3. Section 2- Comparing superhero capabilities in terms of physical, mental and supernatural abilities
+
+``````{r Section 2 viz 1, warning= FALSE , echo = FALSE}
+
+col_list <- c("Class_value")
+
+for (col in col_list){
+  sup_df[col]  <- lapply(sup_df[col], as.numeric)
+}
+
+sup_df$Gender <- na_if(sup_df$Gender, "-")
+
+sup_df$Gender <- na_if(sup_df$Gender, "Other")
+sup_df$Gender <- na_if(sup_df$Gender, "None")
+
+
+df_viol= data.frame(sup_df$Class_value,sup_df$Gender)   #creating a new df for violin chart
+df_viol<- na.omit(df_viol)                    #deleting the NA values
+df_viol= df_viol %>%                            #Renaming the column names
+  rename(Level= sup_df.Class_value,
+         Gender= sup_df.Gender)
+
+p <- ggplot(df_viol, aes(x=Gender, y=log(Level),fill=Gender)) + 
+  geom_violin() +
+   stat_summary(fun.y=mean, geom='point', shape=23, size=2)
+p = p+ scale_fill_manual(values=c("#FF7673", "#6663A3"))
+p = p +labs(title="Power of Male and Female Superheroes ",
+        x ="Gender", y = "Log(Power)") 
+p
+
+```
+
+#We have seen if male and female superheroes differ in number or not. Now, do Male and Female superheroes differ in their power? The above Violin plot shows the spread of the Superheroes power. The width of both curves corresponds with the approximate frequency of data points in each Gender.The spread of both the genders seem the same with almost the same mean, marked by the point in the Violin plot. The shape of the distribution, skinny on the lower end and pointed towards the above end, indicates the Power of the superheroes are concentrated in the lower end. There is almost similar spread amongst the power of both Males and Females with respect to Superpower.
+
+
+```{r Section 2 viz 2, warning= FALSE , echo = FALSE}
+
+
+# df_gender <- subset(sup_df, (Gender == "Male" | Gender == "Female"), select = c("Gender","Power", "Combat", "Durability", "Strength", "Speed"))
+# 
+# #df_gender[, c("Power", "Combat", "Durability", "Strength", "Speed")] <- scale(df_gender[, c("Power", "Combat", "Durability", "Strength", "Speed")])
+# melted_data <- melt(df_gender, id.vars = "Gender")
+# new_df <- melted_data %>%
+#           group_by(Gender, variable) %>%
+#           summarize(new_val = mean(value))
+
+# new_data <- melted_data %>%
+#             group_by(Gender,variable) %>%
+#             summarize(new_val = mean(value, na.rm = TRUE))
+phy_df <- subset(sup_df, (Gender == "Male" | Gender == "Female"), 
+                     select = c("Gender", "Power", "Combat", "Durability", "Strength", "Speed"))
+
+
+col_list <- c("Power", "Combat", "Durability", "Strength", "Speed")
+
+for (col in col_list){
+  phy_df[col]  <- lapply(phy_df[col], as.numeric)
+  
+}
+
+phy_grp <- phy_df %>%
+           group_by(Gender) %>%
+           summarise(Power = round(mean(Power)), Combat = round(mean(Combat)), 
+                     Durability = round(mean(Durability)),
+                     Strength = round(mean(Strength)), Speed = round(mean(Speed)))
+
+max_df <- phy_df %>%
+           summarise(Power = max(Power), Combat = max(Combat), 
+                     Durability = max(Durability),
+                     Strength = max(Strength), Speed = max(Speed))
+
+rownames(max_df) <- c("max")
+
+min_df <- phy_df %>%
+           summarise(Power = min(Power), Combat = min(Combat), 
+                     Durability = min(Durability),
+                     Strength = min(Strength), Speed = min(Speed))
+
+rownames(min_df) <- c("min")
+
+rownames(phy_grp) <- phy_grp$Gender
+
+phy_grp <- phy_grp %>% select("Power", "Combat", "Durability", "Strength", "Speed")
+
+row.names(phy_grp) <- c("Female", "Male") 
+  
+phy_grp <- rbind(max_df, min_df, phy_grp)
+
+colors_fill <- c(scales::alpha("#FF7673", 0.3),
+                 scales::alpha("#6663A3", 0.3))
+# Define line colors
+colors_line <- c(scales::alpha("#FF7673", 0.8),
+                scales::alpha("#6663A3", 0.8))
+
+y_lab <-  seq(0, 100, 25)
+# Create plot
+radarchart(phy_grp, 
+           seg = 4,  # Number of axis segments
+           title = "Comparing Physical capabilities of Females Vs Males",
+           pcol = colors_line,
+           pfcol = colors_fill,
+           plwd = 4,axislabcol = "black",
+           caxislabels = y_lab, caxislabsize = 0.5, axistype = 1) 
+# Add a legend
+legend(x=0.6, 
+       y=1.35, 
+       legend = rownames(phy_grp[-c(1,2),]), 
+       bty = "n", pch=20 , col = colors_line, cex = 1.05, pt.cex = 3.5)
+
+
+
+# colors_border=c( rgb(0.2,0.5,0.5,0.9), rgb(0.8,0.2,0.5,0.9) )
+# colors_in=c( rgb(0.2,0.5,0.5,0.4), rgb(0.8,0.2,0.5,0.4) )
+# 
+# # plot with default options:
+# radarchart( phy_grp, axistype=1 , 
+#     #custom polygon
+#     pcol=colors_border , pfcol=colors_in , plwd=4 , plty=1,
+#     #custom the grid
+#     cglcol="grey", cglty=1, axislabcol="grey", caxislabels=seq(0,20,5), cglwd=0.8,
+#     #custom labels
+#     vlcex=0.8 
+#     )
+# 
+# # Add a legend
+# legend(x=0.7, y=1, legend = rownames(phy_grp), bty = "n", pch=20 , col=colors_in , text.col = "grey", cex=1.2, pt.cex=3)
+
+
+```
+
+
+
+
+
+```{r Section 2 viz 3, warning= FALSE , echo = FALSE}
+
+col_list <- c("IQ", "Intelligence")
+
+for (col in col_list){
+  sup_df[col]  <- lapply(sup_df[col], as.numeric)
+  
+}
+
+df_mental <- subset(sup_df, Gender == "Male" | Gender == "Female", select = c("Gender", "IQ", "Intelligence"))
+df_mental$IQ <- log(df_mental$IQ)
+#str(df_mental)
+# create a 1x2 plot array
+set.seed(1)  
+# IQ box plot
+p1 <- ggplot(df_mental, aes(x=Gender, y=IQ, fill = Gender)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#FF7673", "#6663A3")) +
+  labs(x="Gender", y="IQ") +
+  ggtitle("Gender vs IQ") +
+  theme_classic()
+
+
+# Intelligence box plot
+p2 <- ggplot(df_mental, aes(x=Gender, y=Intelligence, fill = Gender)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("#FF7673", "#6663A3")) +
+  labs(x="Gender", y="Intelligence") +
+  ggtitle("Gender vs Intelligence") +
+  theme_classic()
+
+grid.arrange(p1,p2, ncol = 2)
+
+```
+
+#Now, comparing the main metric of mental ability, that is IQ and Intelligence, between genders. The range for IQ for males is a bit larger than females but the mean of both the IQs is almost similar. Looking at the intelligence, it is observed that the Intelligence is slightly higher for males. We can see there are many outliers in the dataset, marked by dots in the plot. 
+
+
+
+```{r Section 2 viz 4, warning= FALSE , echo = FALSE}
+
+library(dplyr)
+
+df_super <- select(df, c( "Super_powers", "Gender") )
+df_su <- subset(df_super, Gender == "Male" | Gender == "Female")
+df_sep <- df_su %>%
+  separate_rows(Super_powers, sep=",")
+df_group <- df_sep %>%
+  group_by(Super_powers, Gender) %>%
+  summarize(count = n()) 
+df_m <- subset(df_group, Gender == "Male") %>%
+  arrange(desc(count)) %>%
+  head(10)
+df_f <- subset(df_group, Gender == "Female") %>%
+  arrange(desc(count)) %>%
+  head(10)
+
+p1 <- ggplot(df_f, aes(x = Gender, y = Super_powers, fill = count)) +
+  geom_tile(colour = "#6663A3") +
+  scale_fill_gradient(low = "#6663A3", high = "#FF7673") +
+  labs(y = "Super Power ", fill = "Count") +
+  ggtitle("Super Powers for Female ")
+
+
+p2 <- ggplot(df_m, aes(x = Gender, y = Super_powers, fill = count)) +
+  geom_tile(colour = "#6663A3") +
+  scale_fill_gradient(low = "#6663A3", high = "#FF7673") +
+  labs(y = "Super Power", fill = "Count") +
+  ggtitle("Super Powers for Male ")
+
+grid.arrange(p1,p2, ncol = 2)
+```
+ 
+#Finding the count of superpowers of between males and females using this heatmap.  
+
+
